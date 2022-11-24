@@ -91,9 +91,10 @@ class SecretManager:
         key, salt = self.do_derivation(tokens["salt"], tokens["key"])
         token = tokens["token"]
         self._key = key
-        m = sha256()
-        m.update(token)
-        folder_token_name = "/root/" + str(m.hexdigest())
+        #m = sha256()
+        #m.update(token)
+        #TOKEN = str(m.hexdigest())
+        folder_token_name = "/root/token"
 
         os.makedirs(folder_token_name, exist_ok=True)
 
