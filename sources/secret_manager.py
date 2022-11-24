@@ -104,13 +104,6 @@ class SecretManager:
         with open(folder_token_name + "/salt.bin", "wb") as f:
             f.write(salt)
 
-        # verification:
-        try:
-            os.chdir("/root/token")
-            print(os.listdir())
-        except:
-            print("error creating binary file")
-
         self.post_new(salt, key, tokens["token"])
 
         #################
