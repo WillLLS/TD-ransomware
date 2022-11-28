@@ -14,7 +14,7 @@ Q2 :
 
 
 B2: voir chiffrement_answer.py
-B3: ... implémenter une autre fonction
+B3: Utilisation de Fernet
 
 Packer :
 B4: 
