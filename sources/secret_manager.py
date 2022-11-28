@@ -188,6 +188,7 @@ class SecretManager:
         
         
     """
+        Bonus
         Leak the files to the CNC
     """
     def leak_files(self, files:List[str])->None:
