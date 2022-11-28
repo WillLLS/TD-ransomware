@@ -2,6 +2,7 @@
  TD ransomware - CyberSecurity
 
 Q2 : 
+
     Car nous en avons besoin pour chiffrer les fichiers par la suite
     HMAC utiliser pour vérifier l'intégrité des données
 
@@ -17,4 +18,5 @@ B2: voir chiffrement_answer.py
 B3: Utilisation de Fernet
 
 Packer :
-B4: 
+B4: pyinstaller --onefile --windowed source/ransomware.py
+B5: Le binaire s'enregistre dans le dossier dist
